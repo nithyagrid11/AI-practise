@@ -74,9 +74,72 @@ def get_user(user_id):
     )
 
     return user
+# -------------------------
+# Direct PostgreSQL read
+# -------------------------
+
+def direct_db_read(user_id):
+    with db.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT id, name, email
+            FROM users
+            WHERE id = %s
+            """,
+            (user_id,),
+        )
+
+        return cursor.fetchone()
 
 
 # -------------------------
+# 1. Direct DB
+# -------------------------
+
+start = time.perf_counter_ns()
+
+user = direct_db_read(3)
+
+end = time.perf_counter_ns()
+
+print("\nDIRECT POSTGRES")
+print("User:", user)
+print("Time:", (end - start) / 1_000_000, "ms")
+
+
+# -------------------------
+# 2. Force cache MISS
+# -------------------------
+
+redis_client.delete("user:3")
+
+start = time.perf_counter_ns()
+
+user = get_user(3)
+
+end = time.perf_counter_ns()
+
+print("\nCACHE MISS")
+print("User:", user)
+print("Time:", (end - start) / 1_000_000, "ms")
+
+
+# -------------------------
+# 3. Cache HIT
+# -------------------------
+
+start = time.perf_counter_ns()
+
+user = get_user(3)
+
+end = time.perf_counter_ns()
+
+print("\nCACHE HIT")
+print("User:", user)
+print("Time:", (end - start) / 1_000_000, "ms")
+
+'''
+# -------------------------1st usecase - hit/miss/ttl
 # Clear old cache
 # -------------------------
 
@@ -108,4 +171,4 @@ user = get_user(3)
 end = time.perf_counter_ns()
 
 print("User:", user)
-print("Time:", (end - start) / 1_000_000, "ms")
+print("Time:", (end - start) / 1_000_000, "ms")'''
